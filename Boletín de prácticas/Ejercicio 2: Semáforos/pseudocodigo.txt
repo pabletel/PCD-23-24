@@ -12,6 +12,12 @@ public class Main {
 
 ----------
 
+public enum Direccion {
+	NORTESUR,ESTEOESTE
+}
+
+----------
+
 public class Peaton {
 	
 	public static volatile Peaton[] peatones = new Peaton[100];
