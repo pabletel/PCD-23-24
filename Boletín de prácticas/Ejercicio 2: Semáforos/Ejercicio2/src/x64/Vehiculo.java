@@ -1,7 +1,7 @@
 package x64;
 
 public class Vehiculo extends Thread {
-	
+	public static volatile int nv = 0;
 	private Direccion direccion;
 	public static volatile Vehiculo[] vehiculos = new Vehiculo[50];
 	
@@ -35,24 +35,32 @@ public class Vehiculo extends Thread {
 		}
 	}
 	
-	private void cruzar() {
+	private void cruzar() throws InterruptedException {
+		Cambiador.NorteSur.acquire();
 		System.out.println("vehiculo cruzando");
+		Vehiculo.nv++;
 		try {
 			Thread.sleep(50);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+		Vehiculo.nv--;
+		Cambiador.NorteSur.release();
 	}
 	
 	public void run() {
-		this.cruzar();
+		/*
+		 * En este método el hilo vehiculo intenta cruzar, espera 7 segundos cambia la direccion y vuelve 
+		 * a intentar cruzar
+		 * */
 		try {
+			this.cruzar();
 			this.wait(700);
+			this.chageDireccion();
+			this.cruzar();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		this.chageDireccion();
-		this.cruzar();
 		
 	}
 	

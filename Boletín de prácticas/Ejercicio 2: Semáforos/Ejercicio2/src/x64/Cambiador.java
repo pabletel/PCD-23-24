@@ -3,58 +3,65 @@ package x64;
 import java.util.concurrent.Semaphore;
 
 public class Cambiador extends Thread {
-	private Semaphore peaton;
-	private Semaphore NorteSur;
-	private Semaphore EsteOeste;
+	public static Semaphore peaton;
+	public static Semaphore NorteSur;
+	public static Semaphore EsteOeste;
+	
+	public static final int MAXNS = 4;
+	public static final int MAXEO = 4;
+	public static final int MAXP = 10;
+	public static final int DEFAULT = 0;
 	
 	public Cambiador() {
-		this.peaton = new Semaphore(0);
-		this.NorteSur = new Semaphore(1);
-		this.EsteOeste = new Semaphore(0);
+		Cambiador.peaton = new Semaphore(Cambiador.DEFAULT);
+		Cambiador.NorteSur = new Semaphore(Cambiador.DEFAULT);
+		Cambiador.EsteOeste = new Semaphore(Cambiador.DEFAULT);
 	}
 	
 	public void pasoNorteSur() {
-		try {
-			this.NorteSur.acquire();
-			System.out.println("Norte-Sur en verde");
-			Thread.sleep(500);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		System.out.println("Norte-Sur en rojo");
-		this.NorteSur.release();
+		Cambiador.NorteSur = new Semaphore(Cambiador.MAXNS);
+		
 	}
 	
 	public void pasoEsteOeste() {
-		try {
-			this.EsteOeste.acquire();
-			System.out.println("Este-Oeste en verde");
-			Thread.sleep(500);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		System.out.println("Este-Oeste en rojo");
-		this.EsteOeste.release();
+		Cambiador.EsteOeste = new Semaphore(Cambiador.MAXEO);
 	}
 	
 	public void pasoPeatones() {
-		try {
-			this.peaton.acquire();
-			System.out.println("Peatones en verde");
-			Thread.sleep(500);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		System.out.println("Peatones en rojo");
-		this.peaton.release();
+		Cambiador.peaton = new Semaphore(Cambiador.MAXP);
 	}
 	public void run() {
+		/*
+		 * Este método lo que hace es volver a crear los semaforos a unos con el numero de permisos igual
+		 * al numero de coches o peatones que pueden  haber en la calzada
+		 * cuanmdo acaba el tiempo  de un semaforo recoge todos sus permisos y lo cambia por uno  sin permisos disponibles
+		 * y así mientras la variable global x no indique el final del programa
+		 * */
 		Vehiculo.lanzarVehiculos();
 		//TODO lanzar peatones
-		while(Main.x) {
-			this.pasoNorteSur();
-			this.pasoEsteOeste();
-			this.pasoPeatones();
+		while(Main.x == true) {
+			try {
+				System.out.println("Norte-Sur en verde");
+				this.pasoNorteSur();
+				Thread.sleep(500);
+				System.out.println("Norte-Sur en rojo");
+				Cambiador.NorteSur.drainPermits(); //resetea permisos
+				Cambiador.NorteSur = new Semaphore(Cambiador.DEFAULT);
+				System.out.println("Este-Oeste en verde");
+				this.pasoEsteOeste();
+				Thread.sleep(500);
+				System.out.println("Este-Oeste en rojo");
+				Cambiador.EsteOeste.drainPermits();
+				Cambiador.EsteOeste = new Semaphore(Cambiador.DEFAULT);
+				System.out.println("Peatones en verde");
+				this.pasoPeatones();
+				Thread.sleep(500);
+				System.out.println("Peatones en rojo");
+				Cambiador.peaton.drainPermits();
+				Cambiador.peaton = new Semaphore(Cambiador.DEFAULT);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }
