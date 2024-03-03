@@ -1,16 +1,154 @@
-dos hilos, uno peaton (ph) y otro vehiculo (vh)
+public class Main {
 
-ph : protocolo entrada, cruzar, protocolo salida
-vh : protocolo entrada, cruzar protocolo de salida, cambio de sentido, protocolo entrada, cruzar, protocolo de salida
-
-ph : if(noEsTuTurno, CalzadaOcupada, 10EnCalzada){ //protocolo entrada
-		sleep(); //bloquear hilo
-	}else{
-		cruzar();
-		slepp();
-	}
-	ProtocoloSalida
+	public static volatile Cambiador c = new Cambiador();
+	public static volatile boolean  x = true; //variable para confirmar la continuacion del programa, será false cuando termine
 	
-Hacer un hilo (cambiador) que se encargue de cambiar los estados esta clase va a tener los semaforos, los semaforos seran binarios, estos semaforos seran 3 semaforos(uno para peaton, otro para norte y otro para este)
+	public static void main(String[] args) {
+		
+		Main.c.start();
+//TODO falta completarla
+	}
+}
 
+----------
 
+public class Peaton {
+	
+	public static volatile Peaton[] peatones = new Peaton[100];
+//TODO falta implementarla
+}
+
+----------
+
+public class Vehiculo extends Thread {
+	
+	public static volatile int nv = 0;
+	private Direccion direccion;
+	public static volatile Vehiculo[] vehiculos = new Vehiculo[50];
+	
+	public Vehiculo(Direccion direccion) {
+		this.direccion = direccion;
+	}
+	
+	public Direccion getDireccion() {
+		return this.direccion;
+	}
+	
+	private void setDireccion(Direccion direccion) {
+		this.direccion= direccion;
+	}
+	
+	private void chageDireccion() {
+		if(this.getDireccion()==Direccion.NORTESUR) {
+			this.setDireccion(Direccion.ESTEOESTE);
+		}else {
+			this.setDireccion(Direccion.NORTESUR);
+		}
+	}
+	
+	public static void lanzarVehiculos() {
+		for(int i=0;i<vehiculos.length;i++) {
+			if(i%2==0) {
+				vehiculos[i] = new Vehiculo(Direccion.NORTESUR);
+			}else {
+				vehiculos[i] = new Vehiculo(Direccion.ESTEOESTE);
+			}
+		}
+	}
+	
+	private void cruzar() throws InterruptedException {
+		Cambiador.NorteSur.acquire();
+		System.out.println("vehiculo cruzando");
+		Vehiculo.nv++;
+		try {
+			Thread.sleep(50);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		Vehiculo.nv--;
+		Cambiador.NorteSur.release();
+	}
+	
+	public void run() {
+		/*
+		 * En este método el hilo vehiculo intenta cruzar, espera 7 segundos cambia la direccion y vuelve 
+		 * a intentar cruzar
+		 * */
+		try {
+			this.cruzar();
+			this.wait(700);
+			this.chageDireccion();
+			this.cruzar();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+}
+
+----------
+
+public class Cambiador extends Thread {
+	public static Semaphore peaton;
+	public static Semaphore NorteSur;
+	public static Semaphore EsteOeste;
+	
+	public static final int MAXNS = 4;
+	public static final int MAXEO = 4;
+	public static final int MAXP = 10;
+	public static final int DEFAULT = 0;
+	
+	public Cambiador() {
+		Cambiador.peaton = new Semaphore(Cambiador.DEFAULT);
+		Cambiador.NorteSur = new Semaphore(Cambiador.DEFAULT);
+		Cambiador.EsteOeste = new Semaphore(Cambiador.DEFAULT);
+	}
+	
+	public void pasoNorteSur() {
+		Cambiador.NorteSur = new Semaphore(Cambiador.MAXNS);
+		
+	}
+	
+	public void pasoEsteOeste() {
+		Cambiador.EsteOeste = new Semaphore(Cambiador.MAXEO);
+	}
+	
+	public void pasoPeatones() {
+		Cambiador.peaton = new Semaphore(Cambiador.MAXP);
+	}
+	public void run() {
+		/*
+		 * Este método lo que hace es volver a crear los semaforos a unos con el numero de permisos igual
+		 * al numero de coches o peatones que pueden  haber en la calzada
+		 * cuanmdo acaba el tiempo  de un semaforo recoge todos sus permisos y lo cambia por uno  sin permisos disponibles
+		 * y así mientras la variable global x no indique el final del programa
+		 * */
+		Vehiculo.lanzarVehiculos();
+		//TODO lanzar peatones
+		while(Main.x == true) {
+			try {
+				System.out.println("Norte-Sur en verde");
+				this.pasoNorteSur();
+				Thread.sleep(500);
+				System.out.println("Norte-Sur en rojo");
+				Cambiador.NorteSur.drainPermits(); //resetea permisos
+				Cambiador.NorteSur = new Semaphore(Cambiador.DEFAULT);
+				System.out.println("Este-Oeste en verde");
+				this.pasoEsteOeste();
+				Thread.sleep(500);
+				System.out.println("Este-Oeste en rojo");
+				Cambiador.EsteOeste.drainPermits();
+				Cambiador.EsteOeste = new Semaphore(Cambiador.DEFAULT);
+				System.out.println("Peatones en verde");
+				this.pasoPeatones();
+				Thread.sleep(500);
+				System.out.println("Peatones en rojo");
+				Cambiador.peaton.drainPermits();
+				Cambiador.peaton = new Semaphore(Cambiador.DEFAULT);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+}
