@@ -1,2 +1,16 @@
-aqui planteamos el ejercicio de los peatones
+dos hilos, uno peaton (ph) y otro vehiculo (vh)
+
+ph : protocolo entrada, cruzar, protocolo salida
+vh : protocolo entrada, cruzar protocolo de salida, cambio de sentido, protocolo entrada, cruzar, protocolo de salida
+
+ph : if(noEsTuTurno, CalzadaOcupada, 10EnCalzada){ //protocolo entrada
+		sleep(); //bloquear hilo
+	}else{
+		cruzar();
+		slepp();
+	}
+	ProtocoloSalida
+	
+Hacer un hilo (cambiador) que se encargue de cambiar los estados esta clase va a tener los semaforos, los semaforos seran binarios, estos semaforos seran 3 semaforos(uno para peaton, otro para norte y otro para este)
+
 
